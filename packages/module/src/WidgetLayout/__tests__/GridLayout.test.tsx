@@ -1,4 +1,6 @@
 import React from 'react';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import GridLayout from '../GridLayout';
@@ -194,6 +196,22 @@ describe('GridLayout', () => {
       );
       expect(screen.getByText('Widget A')).toBeInTheDocument();
       expect(screen.getByText('Widget B')).toBeInTheDocument();
+    });
+  });
+
+  describe('resize handles', () => {
+    it('keeps enabled handles in the layout for touch resizing', () => {
+      const styles = readFileSync(resolve(__dirname, '../../styles.css'), 'utf8');
+
+      expect(styles).toMatch(
+        /\.react-grid-item:not\(\.static\) \.react-resizable-handle\s*{[^}]*display:\s*grid;[^}]*opacity:\s*0;/s
+      );
+      expect(styles).toMatch(
+        /@media \(pointer: coarse\)\s*{[^}]*\.react-grid-item:not\(\.static\) \.react-resizable-handle\s*{[^}]*opacity:\s*1;/s
+      );
+      expect(styles).toMatch(
+        /\.react-grid-item\.static \.react-resizable-handle\s*{[^}]*display:\s*none;/
+      );
     });
   });
 

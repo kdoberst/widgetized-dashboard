@@ -1,11 +1,10 @@
-.react-grid-item .react-resizable-handle-nw,
-.react-grid-item .react-resizable-handle-ne,
-.react-grid-item .react-resizable-handle-sw,
-.react-grid-item .react-resizable-handle-se,
-.react-grid-item .react-resizable-handle-n,
-.react-grid-item .react-resizable-handle-s,
-.react-grid-item .react-resizable-handle-w,
-.react-grid-item .react-resizable-handle-e {
+.react-grid-item:not(.static) .react-resizable-handle {
+  display: grid;
+  place-items: center;
+  opacity: 0;
+}
+
+.react-grid-item.static .react-resizable-handle {
   display: none;
 }
 
@@ -35,8 +34,13 @@
 .react-grid-item:active:not(.static) .react-resizable-handle-s,
 .react-grid-item:active:not(.static) .react-resizable-handle-w,
 .react-grid-item:active:not(.static) .react-resizable-handle-e {
-  display: grid;
-  place-items: center;
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .react-grid-item:not(.static) .react-resizable-handle {
+    opacity: 1;
+  }
 }
 
 /* Doubled class for specificity to override react-grid-layout defaults */
