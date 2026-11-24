@@ -13,7 +13,7 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import CloseIcon from '@patternfly/react-icons/dist/esm/icons/close-icon';
 import GripVerticalIcon from '@patternfly/react-icons/dist/esm/icons/grip-vertical-icon';
 import PlusCircleIcon from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
@@ -45,7 +45,7 @@ const WidgetWrapper = ({ widgetType, config, onDragStart, onDragEnd, onAdd, isDi
   config?: WidgetConfiguration;
   onDragStart: (widgetType: string) => void;
   onDragEnd: () => void;
-  onAdd?: (widgetType: string) => void;
+  onAdd?: (widgetType: string, event: React.MouseEvent<HTMLButtonElement>) => void;
   isDisabled?: boolean;
 }) => (
     <Card
@@ -83,14 +83,18 @@ const WidgetWrapper = ({ widgetType, config, onDragStart, onDragEnd, onAdd, isDi
                   <GripVerticalIcon />
                 </Icon>
               </Tooltip>
-              <Button
-                variant="plain"
-                className="pf-v6-widget-drawer__add-button"
-                icon={<PlusCircleIcon />}
-                aria-label={`Add ${config?.title || widgetType} widget to dashboard`}
-                isDisabled={isDisabled}
-                onClick={() => onAdd?.(widgetType)}
-              />
+              {onAdd && (
+                <Button
+                  variant="plain"
+                  className="pf-v6-widget-drawer__add-button"
+                  icon={<PlusCircleIcon />}
+                  aria-label={`Add ${config?.title || widgetType} widget to dashboard`}
+                  isDisabled={isDisabled}
+                  onClick={(event) => onAdd(widgetType, event)}
+                  data-widget-add="true"
+                  data-widget-type={widgetType}
+                />
+              )}
             </>
           ),
           hasNoOffset: true,
@@ -121,12 +125,47 @@ const WidgetDrawer = ({
   isDisabled,
 }: WidgetDrawerProps) => {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<{ widgetType: string; nextWidgetTypes: string[] } | undefined>(undefined);
 
   // Use controlled state if provided, otherwise use internal state
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const setIsOpen = onOpenChange || setInternalIsOpen;
 
   const filteredWidgetMapping = Object.entries(widgetMapping).filter(([type]) => !currentlyUsedWidgets.includes(type));
+
+  const handleWidgetAdd = (widgetType: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    const addButton = event.currentTarget;
+    const addButtons = Array.from(
+      drawerRef.current?.querySelectorAll<HTMLButtonElement>('[data-widget-add="true"]') ?? []
+    );
+    const nextWidgetTypes = addButtons
+      .slice(addButtons.indexOf(addButton) + 1)
+      .map((button) => button.getAttribute('data-widget-type'))
+      .filter((widgetType): widgetType is string => Boolean(widgetType));
+
+    pendingFocus.current = { widgetType, nextWidgetTypes };
+    onWidgetAdd?.(widgetType);
+  };
+
+  useLayoutEffect(() => {
+    const pending = pendingFocus.current;
+    if (!pending) {
+      return;
+    }
+    pendingFocus.current = undefined;
+
+    const getAddButton = (type: string) =>
+      Array.from(drawerRef.current?.querySelectorAll<HTMLButtonElement>('[data-widget-add="true"]') ?? [])
+        .find((button) => button.getAttribute('data-widget-type') === type);
+    const removedButton = getAddButton(pending.widgetType);
+    const nextButton =
+      pending.nextWidgetTypes.map(getAddButton).find(Boolean) ??
+      drawerRef.current?.querySelector<HTMLButtonElement>('[data-widget-add="true"]') ??
+      drawerRef.current?.querySelector<HTMLButtonElement>('.pf-v6-widget-drawer__close-button');
+
+    (removedButton ?? nextButton)?.focus();
+  }, [currentlyUsedWidgets]);
 
   const defaultInstructionText = `Add new and previously removed widgets by clicking the icon, then drag and drop to a new location. Drag the corners of the cards to resize widgets.`;
 
@@ -172,7 +211,7 @@ const WidgetDrawer = ({
                 config={widget.config}
                 onDragStart={(widgetType) => onWidgetDragStart?.(widgetType)}
                 onDragEnd={() => onWidgetDragEnd?.()}
-                onAdd={onWidgetAdd}
+                onAdd={onWidgetAdd ? handleWidgetAdd : undefined}
                 isDisabled={isDisabled}
               />
             </GalleryItem>
@@ -183,7 +222,7 @@ const WidgetDrawer = ({
 
   return (
     <>
-      {isOpen && <div>{panelContent}</div>}
+      {isOpen && <div ref={drawerRef}>{panelContent}</div>}
       {children}
     </>
   );

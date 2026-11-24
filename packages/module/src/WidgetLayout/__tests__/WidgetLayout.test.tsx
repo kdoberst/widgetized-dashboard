@@ -144,6 +144,32 @@ describe('WidgetLayout', () => {
         expect.objectContaining({ i: 'test-widget#1', y: 3 }),
       ],
     }));
+
+    expect(screen.getByRole('button', { name: 'Close widget drawer' })).toHaveFocus();
+  });
+
+  it('uses one widget ID across all breakpoint layouts', async () => {
+    const user = userEvent.setup();
+    const handleChange = jest.fn();
+
+    render(
+      <WidgetLayout
+        widgetMapping={twoWidgetMapping}
+        initialTemplate={mockTemplate}
+        onTemplateChange={handleChange}
+        initialDrawerOpen={true}
+      />
+    );
+
+    screen.getByRole('button', { name: /New Widget/ }).focus();
+    await user.keyboard('{Enter}');
+
+    const updatedTemplate = handleChange.mock.calls.at(-1)?.[0];
+    const widgetIds = Object.values(updatedTemplate).map(
+      (layout) => layout.find((item) => item.widgetType === 'new-widget')?.i
+    );
+
+    expect(new Set(widgetIds).size).toBe(1);
   });
 });
 

@@ -61,6 +61,7 @@ const WidgetLayout = ({
     if (isLayoutLocked || !isWidgetType(widgetMapping, widgetType)) { return; }
     const widget = widgetMapping[widgetType];
     if (!widget) { return; }
+    const widgetId = getWidgetIdentifier(widgetType);
 
     const newTemplate = Object.entries(template).reduce((acc, [size, layout]) => {
       const newWidget = {
@@ -69,7 +70,7 @@ const WidgetLayout = ({
         x: 0,
         y: 0,
         widgetType,
-        i: getWidgetIdentifier(widgetType),
+        i: widgetId,
         title: 'New title',
         config: createSerializableConfig(widget.config)
       };

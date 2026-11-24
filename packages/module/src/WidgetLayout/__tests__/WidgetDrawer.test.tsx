@@ -42,6 +42,17 @@ describe('WidgetDrawer', () => {
     expect(screen.queryByText('Widget A')).not.toBeInTheDocument();
   });
 
+  it('does not render an add button when no add callback is provided', () => {
+    render(
+      <WidgetDrawer widgetMapping={widgetMapping} isOpen={true}>
+        <div>Dashboard</div>
+      </WidgetDrawer>
+    );
+
+    expect(screen.queryByRole('button', { name: /Add Widget A/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Widget A')).toBeInTheDocument();
+  });
+
   it('renders all widgets in drawer when open with none in use', () => {
     render(
       <WidgetDrawer widgetMapping={widgetMapping} isOpen={true}>
@@ -145,5 +156,30 @@ describe('WidgetDrawer', () => {
     await user.click(screen.getByText('Widget A'));
 
     expect(onWidgetAdd).not.toHaveBeenCalled();
+  });
+
+  it('moves focus to the next add button after a widget is added', async () => {
+    const user = userEvent.setup();
+    const view = render(
+      <WidgetDrawer widgetMapping={widgetMapping} isOpen={true} onWidgetAdd={() => undefined}>
+        <div>Dashboard</div>
+      </WidgetDrawer>
+    );
+
+    screen.getByRole('button', { name: /Add Widget A/ }).focus();
+    await user.keyboard('{Enter}');
+
+    view.rerender(
+      <WidgetDrawer
+        widgetMapping={widgetMapping}
+        currentlyUsedWidgets={['widget-a']}
+        isOpen={true}
+        onWidgetAdd={() => undefined}
+      >
+        <div>Dashboard</div>
+      </WidgetDrawer>
+    );
+
+    expect(screen.getByRole('button', { name: /Add Widget B/ })).toHaveFocus();
   });
 });
